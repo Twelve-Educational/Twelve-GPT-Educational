@@ -15,12 +15,12 @@ from classes.data_source import PersonStat
 
 import json
 
-# from settings import USE_GEMINI
+from settings import USE_GEMINI
 
-# if USE_GEMINI:
-#     from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
-# else:
-#     from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_ENGINE
+if USE_GEMINI:
+    from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
+else:
+    from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_ENGINE
 
 import streamlit as st
 import random
@@ -168,53 +168,53 @@ class Description(ABC):
         ]
         return messages
 
-    # def stream_gpt(self, temperature=1):
-    #     """
-    #     Run the GPT model on the messages and stream the output.
+    def stream_gpt(self, temperature=1):
+        """
+        Run the GPT model on the messages and stream the output.
 
-    #     Arguments:
-    #     temperature: optional float
-    #         The temperature of the GPT model.
+        Arguments:
+        temperature: optional float
+            The temperature of the GPT model.
 
-    #     Yields:
-    #         str
-    #     """
+        Yields:
+            str
+        """
 
-    #     st.expander("Chat transcript", expanded=False).write(self.messages)
+        st.expander("Chat transcript", expanded=False).write(self.messages)
 
-    #     if USE_GEMINI:
-    #         import google.generativeai as genai
+        if USE_GEMINI:
+            import google.generativeai as genai
 
-    #         converted_msgs = convert_messages_format(self.messages)
+            converted_msgs = convert_messages_format(self.messages)
 
-    #         # # save converted messages to json
-    #         # with open("data/wvs/msgs_0.json", "w") as f:
-    #         #     json.dump(converted_msgs, f)
+            # # save converted messages to json
+            # with open("data/wvs/msgs_0.json", "w") as f:
+            #     json.dump(converted_msgs, f)
 
-    #         genai.configure(api_key=GEMINI_API_KEY)
-    #         model = genai.GenerativeModel(
-    #             model_name=GEMINI_CHAT_MODEL,
-    #             system_instruction=converted_msgs["system_instruction"],
-    #         )
-    #         chat = model.start_chat(history=converted_msgs["history"])
-    #         response = chat.send_message(content=converted_msgs["content"])
+            genai.configure(api_key=GEMINI_API_KEY)
+            model = genai.GenerativeModel(
+                model_name=GEMINI_CHAT_MODEL,
+                system_instruction=converted_msgs["system_instruction"],
+            )
+            chat = model.start_chat(history=converted_msgs["history"])
+            response = chat.send_message(content=converted_msgs["content"])
 
-    #         answer = response.text
-    #     else:
-    #         # Use OpenAI API
-    #         openai.api_base = GPT_BASE
-    #         openai.api_version = GPT_VERSION
-    #         openai.api_key = GPT_KEY
+            answer = response.text
+        else:
+            # Use OpenAI API
+            openai.api_base = GPT_BASE
+            openai.api_version = GPT_VERSION
+            openai.api_key = GPT_KEY
 
-    #         response = openai.ChatCompletion.create(
-    #             engine=GPT_ENGINE,
-    #             messages=self.messages,
-    #             temperature=temperature,
-    #         )
+            response = openai.ChatCompletion.create(
+                engine=GPT_ENGINE,
+                messages=self.messages,
+                temperature=temperature,
+            )
 
-    #         answer = response["choices"][0]["message"]["content"]
+            answer = response["choices"][0]["message"]["content"]
 
-    #     return answer
+        return answer
 
 
 class PlayerDescription(Description):

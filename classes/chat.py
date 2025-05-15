@@ -185,7 +185,7 @@ class Chat:
             group = list(group)
 
             if key == "assistant":
-                avatar = "data/ressources/img/twelve_chat_logo.svg"
+                avatar = "data/ressources/img/twelve_robot.jpg"
             else:
                 try:
                     avatar = st.session_state.user_info["picture"]
