@@ -5,12 +5,13 @@ from itertools import groupby
 from types import GeneratorType
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
+
 
 from classes.data_source import PersonStat
 from classes.data_point import Person
 from classes.description import PersonDescription
-from classes.visual import DistributionPlot, DistributionPlotPersonality
+from classes.visual import DistributionPlot, RadarPlot
+
 
 from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_ENGINE
 
@@ -52,25 +53,34 @@ with st.expander("Dataframe"):
 
 person = select_person(sidebar_container, persons)
 
+
+visual_distribution = DistributionPlot(persons, person, metrics)
+visual_radar = RadarPlot(person, metrics)
+
+
 # Chat state hash determines whether or not we should load a new chat or continue an old one
 # We can add or remove variables to this hash to change conditions for loading a new chat
 to_hash = (person.id,)
 # Now create the chat as type PlayerChat
 chat = create_chat(to_hash, PersonChat, person, persons)
 
+
 # Now we want to add basic content to chat if it's empty
 if chat.state == "empty":
 
     # Make a plot of the distribution of the metrics for all players
     # We reverse the order of the elements in metrics for plotting (because they plot from bottom to top)
-    visual = DistributionPlotPersonality(metrics[::-1])
-    visual.add_title_from_person(person)
-    visual.add_persons(persons, metrics=metrics)
-    visual.add_person(person, len(persons.df), metrics=metrics)
+    #visual = DistributionPlotPersonality(metrics[::-1])
+    #visual.add_title_from_person(person)
+    #visual.add_persons(persons, metrics=metrics)
+    #visual.add_person(person, len(persons.df), metrics=metrics)
+
+    visual = visual_distribution
+    visual2 = visual_radar
 
     # Now call the description class to get the summary of the player
-    description = PersonDescription(person)
-    summary = description.stream_gpt()
+    #description = PersonDescription(person)
+    #summary = description.stream_gpt()
 
     # Add the visual and summary to the chat
     chat.add_message(
@@ -80,7 +90,8 @@ if chat.state == "empty":
         visible=False,
     )
     chat.add_message(visual)
-    chat.add_message(summary)
+    chat.add_message(visual2)
+    #chat.add_message(summary)
 
     chat.state = "default"
 

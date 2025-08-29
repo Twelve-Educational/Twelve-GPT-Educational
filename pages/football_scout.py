@@ -11,7 +11,7 @@ import streamlit as st
 
 from classes.data_source import PlayerStats
 from classes.data_point import Player
-from classes.visual import DistributionPlot
+from classes.visual import DistributionPlot, RadarPlot
 from classes.description import (
     PlayerDescription,
 )
@@ -57,6 +57,10 @@ players.calculate_statistics(metrics=metrics)
 # Now select the focal player
 player = select_player(sidebar_container, players, gender="male", position="Forward")
 
+visual_distribution = DistributionPlot(players, player, metrics)
+visual_radar = RadarPlot(player, metrics)
+
+
 st.write(
     "This app can only handle three or four users at a time. Please [download](https://github.com/soccermatics/twelve-gpt-educational) and run on your own computer with your own Gemini key."
 )
@@ -82,10 +86,13 @@ if chat.state == "empty":
 
     # Make a plot of the distribution of the metrics for all players
     # We reverse the order of the elements in metrics for plotting (because they plot from bottom to top)
-    visual = DistributionPlot(metrics[::-1])
-    visual.add_title_from_player(player)
-    visual.add_players(players, metrics=metrics)
-    visual.add_player(player, len(players.df), metrics=metrics)
+    #visual = DistributionPlot(metrics[::-1])
+    #visual.add_title_from_player(player)
+    #visual.add_players(players, metrics=metrics)
+    #visual.add_player(player, len(players.df), metrics=metrics)
+
+    visual = visual_distribution
+    visual2 = visual_radar
 
     # Now call the description class to get the summary of the player
     description = PlayerDescription(player)
@@ -99,6 +106,7 @@ if chat.state == "empty":
         visible=False,
     )
     chat.add_message(visual)
+    chat.add_message(visual2)
     chat.add_message(summary)
 
     chat.state = "default"

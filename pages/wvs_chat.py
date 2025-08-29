@@ -15,7 +15,7 @@ from utils.utils import select_country, create_chat
 
 
 from classes.chat import WVSChat
-from classes.visual import DistributionPlot
+from classes.visual import DistributionPlot, RadarPlot
 
 from utils.page_components import add_common_page_elements
 
@@ -39,6 +39,10 @@ page_container = st.sidebar.container()
 sidebar_container = st.sidebar.container()
 
 country = select_country(sidebar_container, countries)
+
+visual_distribution = DistributionPlot(countries, country, metrics)
+visual_radar = RadarPlot(country, metrics)
+
 
 st.divider()
 
@@ -138,12 +142,15 @@ if chat.state == "empty":
 
     # Make a plot of the distribution of the metrics for all players
     # We reverse the order of the elements in metrics for plotting (because they plot from bottom to top)
-    visual = DistributionPlot(
-        metrics[::-1], labels=["Low", "Average", "High"], plot_type="wvs"
-    )
-    visual.add_title_from_player(country)
-    visual.add_players(countries, metrics=metrics)
-    visual.add_player(country, len(countries.df), metrics=metrics)
+    #visual = DistributionPlot(
+    #    metrics[::-1], labels=["Low", "Average", "High"], plot_type="wvs"
+    #)
+    #visual.add_title_from_player(country)
+    #visual.add_players(countries, metrics=metrics)
+    #visual.add_player(country, len(countries.df), metrics=metrics)
+
+    visual = visual_distribution
+    visual2 = visual_radar
 
     # Now call the description class to get the summary of the country
     description = CountryDescription(
@@ -159,6 +166,7 @@ if chat.state == "empty":
         visible=False,
     )
     chat.add_message(visual)
+    chat.add_message(visual2)
     chat.add_message(summary)
 
     chat.state = "default"
