@@ -79,8 +79,8 @@ if chat.state == "empty":
     visual2 = visual_radar
 
     # Now call the description class to get the summary of the player
-    #description = PersonDescription(person)
-    #summary = description.stream_gpt()
+    description = PersonDescription(person)
+    summary = description.stream_gpt()
 
     # Add the visual and summary to the chat
     chat.add_message(
@@ -91,7 +91,7 @@ if chat.state == "empty":
     )
     chat.add_message(visual)
     chat.add_message(visual2)
-    #chat.add_message(summary)
+    chat.add_message(summary)
 
     chat.state = "default"
 

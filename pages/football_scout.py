@@ -41,7 +41,20 @@ minimal_minutes = 300
 players = PlayerStats(minimal_minutes=minimal_minutes)
 
 # Define the metrics we are interested in and calculates them
+
 metrics = [
+    "non-penalty expected goals",
+    "goals",
+    "assists",
+    "key passes",
+    "smart passes",
+    "final passes",
+    "final third receptions",
+    "ground duels",
+    "air duels",
+]
+
+metric = [
     "npxG_adjusted_per90",
     "goals_adjusted_per90",
     "assists_adjusted_per90",
@@ -52,7 +65,19 @@ metrics = [
     "ground_duels_won_adjusted_per90",
     "air_duels_won_adjusted_per90",
 ]
-players.calculate_statistics(metrics=metrics)
+
+metrics_name = {
+    "npxG_adjusted_per90": "non-penalty expected goals",
+    "goals_adjusted_per90": "goals",
+    "assists_adjusted_per90": "assists",
+    "key_passes_adjusted_per90": "key passes",
+    "smart_passes_adjusted_per90":"smart passes",
+    "final_third_passes_adjusted_per90": "final third passes",
+    "final_third_receptions_adjusted_per90":"final third reception",
+    "ground_duels_won_adjusted_per90": "ground duels",
+    "air_duels_won_adjusted_per90": "air duels",
+}
+players.calculate_statistics(metrics=metric)
 
 # Now select the focal player
 player = select_player(sidebar_container, players, gender="male", position="Forward")
