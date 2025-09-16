@@ -6,6 +6,7 @@ from classes.data_source import PersonStat, CountryStats, PlayerStats
 from classes.description import PersonDescription, CountryDescription, PlayerDescription
 import copy
 import json
+import random
 import pandas as pd
 import utils.sentences as sentences
 from tqdm import tqdm
@@ -34,7 +35,7 @@ def series_to_markdown(
         ]
     return "\n".join([header, separator] + rows)
 
-def generate_player_descriptions():
+def generate_player_descriptions(n=10):
     players= PlayerStats()
     metrics = [m for m in players.df.columns if m not in ["player_name"]]
     players.calculate_statistics(metrics=metrics)
@@ -81,7 +82,8 @@ def generate_player_descriptions():
         "air_duels_won_adjusted_per90": "air duels",
     }
     evaluation_descriptions=[]
-    for player_name in tqdm(player_names):
+    progress_bar = st.progress(0)
+    for i, player_name in enumerate(tqdm(random.sample(player_names, n))):
         tmp_player = select_player(players, player_name)
         p_description = PlayerDescription(
             tmp_player,
@@ -95,14 +97,14 @@ def generate_player_descriptions():
         numerical_parts = [f"{col}: {val:.2f}" for col, val in zip(data.index, data.values)]
         numerical_description = f"Here are the {player_name} z-scores on key football metrics: " + ", ".join(numerical_parts)
         synthetic_description=p_description.synthesize_text()
-        # st.write(synthetic_description)
-        # st.write(numerical_description)
         result=stream_gpt("player",synthetic_description, numerical_description)
         # st.write(result)
         df_result = pd.DataFrame(result, columns=["Type", "LLMResponse"])
         # add player name column
         df_result["Name"] = player_name
         evaluation_descriptions.append(df_result)
+        progress_bar.progress((i + 1) / n)
+    progress_bar.empty()
     
     # combine all into one big DataFrame
     final_df = pd.concat(evaluation_descriptions , ignore_index=True)
@@ -112,7 +114,7 @@ def generate_player_descriptions():
         
 
     
-def generate_country_descriptions():
+def generate_country_descriptions(n=10):
     country= CountryStats()
     metrics = [m for m in country.df.columns if m not in ["country"]]
     country.calculate_statistics(metrics=metrics)
@@ -183,7 +185,9 @@ def generate_country_descriptions():
             description = ""
         return description
     evaluation_descriptions=[]
-    for country_id in tqdm(country_names):
+
+    progress_bar = st.progress(0)
+    for i, country_id in enumerate(tqdm(random.sample(country_names, n))):
         # try:
         tmp_country = select_country(country, country_id)
         c_description = CountryDescription(
@@ -213,17 +217,19 @@ def generate_country_descriptions():
         # st.write(synthetic_description)
         # st.write(numerical_description) 
         result=stream_gpt("country",synthetic_description, numerical_description)
-        st.write(result)
+        # st.write(result)
         df_result = pd.DataFrame(result, columns=["Type", "LLMResponse"])
         # add country name column
         df_result["Name"] = country_id
         evaluation_descriptions.append(df_result)
+        progress_bar.progress((i + 1) / n)
+    progress_bar.empty()
     
     # combine all into one big DataFrame
     final_df = pd.concat(evaluation_descriptions , ignore_index=True)
     final_df.to_csv("evaluation/human-evaluation/data/country_descriptions.csv", index=False)
 
-def generate_person_descriptions():
+def generate_person_descriptions(n=10):
     people = PersonStat()
 
     metrics = [m for m in people.df.columns if m not in ["name"]]
@@ -287,16 +293,14 @@ def generate_person_descriptions():
 
     
     evaluation_descriptions=[]
-    for person_id in tqdm(people_names[:2]):
-        # try:
+    progress_bar = st.progress(0)
+    for i, person_id in enumerate(tqdm(random.sample(people_names, n))):
         tmp_person = select_person(people, person_id)
         c_description = PersonDescription(
             tmp_person,
         )
 
-        # text = f"```{c_description.synthesize_text()}```"
         data = c_description.person.ser_metrics
-        # select only rows ending in "_Z"
         cols = [ 
             "extraversion_Z",
             "neuroticism_Z",
@@ -305,30 +309,25 @@ def generate_person_descriptions():
             "openness_Z",
         ]
         data = data[[col for col in data.index if col in cols]]
-        # st.write(data)
-        
-        # remove "_Z" from the index
         data.index = [col[:-2] for col in data.index]
         questions = [
-        get_person_questions(x, c_description, c_description.person) for x in data.index
-    ]   
-        
-        # Build the numerical description, adding questions after each data column if not empty
+            get_person_questions(x, c_description, c_description.person) for x in data.index
+        ]   
+
         numerical_parts = []
         for col, val, q in zip(data.index, data.values, questions):
             part = f"{col}: {val:.2f}"
             if q.strip():
                 part += f" ({q})"
             numerical_parts.append(part)
-        st.write(numerical_parts)
         numerical_description = "Here are the candidates z-scores on their personality test: " + ", ".join(numerical_parts)
-        synthetic_description=c_description.synthesize_text()
-        
-        result=stream_gpt("person",synthetic_description, numerical_description)
-        df_result = pd.DataFrame(result, columns=["Type", "LLM Response"])
-        # add person name column
+        synthetic_description = c_description.synthesize_text()
+        result = stream_gpt("person", synthetic_description, numerical_description)
+        df_result = pd.DataFrame(result, columns=["Type", "LLMResponse"])
         df_result["Name"] = person_id
         evaluation_descriptions.append(df_result)
+        progress_bar.progress((i + 1) / n)
+    progress_bar.empty()
     
     # combine all into one big DataFrame
     final_df = pd.concat(evaluation_descriptions , ignore_index=True)
@@ -341,14 +340,14 @@ def stream_gpt(entity, synthetic_description, numerical_description):
     openai.api_key = GPT_KEY
     # client = OpenAI()
     scaffolds={"W": json.load(open(f"evaluation/human-evaluation/prompts/wordalization_{entity}_prompt.json", encoding="utf-8")),
-               "N": json.load(open(f"evaluation/human-evaluation/prompts/numerical_{entity}_prompt.json", encoding="utf-8")),
-               "Z": json.load(open(f"evaluation/human-evaluation/prompts/zero_knowledge_{entity}_prompt.json", encoding="utf-8"))
+               "N": json.load(open(f"evaluation/human-evaluation/prompts/numerical_{entity}_prompt_v1.json", encoding="utf-8")),
+               "Z": json.load(open(f"evaluation/human-evaluation/prompts/zero_knowledge_{entity}_prompt_v1.json", encoding="utf-8"))
                }
 
     PROMPT={
         "W": "Now do the same thing with the following: '''{synthetic_description}'''",
-        "N": "Now do the same thing with the following: '''{numerical_description}'''",
-        "Z": "Please describe the candidate's personality in four sentences."
+        "N": "Please describe the entity using the statistical information enclose with '''. Give a concise, 4 sentence summary. : '''{numerical_description}'''",
+        "Z": "Please give a concise 4 sentence summary of the entity."
 
     }
     results=[]
@@ -359,8 +358,10 @@ def stream_gpt(entity, synthetic_description, numerical_description):
         )
 
         messages = scaffolds[key] + [{"role": "user", "content": prompt}]
-        # st.expander(f"Prompt {key}").write(messages)
-        st.write(f"Generating {key} description...")
+        openai.api_base = GPT_BASE
+        openai.api_version = GPT_VERSION
+        openai.api_key = GPT_KEY
+        
         try:
             response= openai.ChatCompletion.create(
                 engine=GPT_ENGINE,
@@ -369,12 +370,45 @@ def stream_gpt(entity, synthetic_description, numerical_description):
             )
             llm_output = response.choices[0].message.content.strip()
         except Exception as e:
+            st.error(f"Error generating {key} description: {e}")
             llm_output = "Error: " + str(e)
         finally:
             results.append((key, llm_output))
     return results
 
+def combine_descriptions():
+    person_desc = pd.read_csv("evaluation/human-evaluation/data/person_descriptions.csv")
+    country_desc = pd.read_csv("evaluation/human-evaluation/data/country_descriptions.csv")
+    player_desc = pd.read_csv("evaluation/human-evaluation/data/player_descriptions.csv")
+    person_desc["entity"] = "person"
+    country_desc["entity"] = "country"
+    player_desc["entity"] = "player"
+    combined = pd.concat([person_desc, country_desc, player_desc], ignore_index=True)
+    combined.to_csv("evaluation/human-evaluation/data/all_descriptions.csv", index=False)
+    st.write("### Description Counts")
+    st.write(f"Person descriptions: {len(person_desc)}")
+    st.write(f"Country descriptions: {len(country_desc)}")
+    st.write(f"Player descriptions: {len(player_desc)}")
+    st.write(f"##### {len(combined)} descriptions in total saved to evaluation/human-evaluation/data/all_descriptions.csv ")
 
-# generate_person_descriptions()
-# generate_country_descriptions()
-generate_player_descriptions()
+from utils.page_components import add_common_page_elements
+sidebar_container = add_common_page_elements()
+page_container = st.sidebar.container()
+sidebar_container = st.sidebar.container()
+
+st.divider()
+# st.set_page_config(layout="wide")
+st.title("Generate Evaluation Data")
+num_persons = st.number_input("How many persons do you want to generate descriptions for?", min_value=1, value=10)
+if st.button("Generate Person Descriptions"):
+    generate_person_descriptions(num_persons)
+num_countries = st.number_input("How many countries do you want to generate descriptions for?", min_value=1, value=10)
+if st.button("Generate Country Descriptions"):
+    generate_country_descriptions(num_countries)
+num_players = st.number_input("How many players do you want to generate descriptions for?", min_value=1, value=10)
+if st.button("Generate Player Descriptions"):
+    generate_player_descriptions(num_players)
+
+st.subheader("Combine All Descriptions")
+if st.button("Combine All Descriptions"):
+    combine_descriptions()

@@ -1,164 +1,236 @@
-# Library imports
+# ------------------------------
+# Imports & Config
+# ------------------------------
+import random
 import streamlit as st
 import pandas as pd
-import argparse
-import tiktoken
-import os
-import matplotlib.pyplot as plt
-from utils.utils import normalize_text
-
-from classes.data_source import PlayerStats
-from classes.data_point import Player
 import time
-import numpy as np
-from classes.visual import DistributionPlot
+import uuid
+import copy
 
+from streamlit_gsheets import GSheetsConnection
+
+from classes.data_source import PlayerStats, PersonStat, CountryStats
+from classes.data_point import Player
+from classes.visual import DistributionPlot, RadarPlot
 from utils.page_components import add_common_page_elements
 
 
-# def show():
-sidebar_container = add_common_page_elements()
-page_container = st.sidebar.container()
-sidebar_container = st.sidebar.container()
+# st.set_page_config(layout="wide")
 
-st.divider()
-
-# --- Simulated data (replace with your own dataset / entity stats) ---
-entity_name = "C_0"
-metric = "Stamina"
-entity_value = 7.3
-cohort = np.random.normal(loc=6.0, scale=1.0, size=100)  # cohort distribution
-cohort_median = np.median(cohort)
-
-# --- LLM output (this would be generated under different arms) ---
-llm_output = """The candidate is highly outgoing and energetic, exhibiting a strong tendency to engage socially, often taking the initiative to start conversations. While they are friendly and compassionate, they also display sensitivity and nervousness, leading them to experience more negative emotions and anxiety at times.
-The candidate is very efficient and organized, demonstrating careful attention to detail and a diligent approach to their tasks. They are relatively consistent and cautious in their actions but tend to be less open to new ideas and experiences, favoring familiar routines over novelty."""
-
-# --- Survey state ---
-if "start_time" not in st.session_state:
-    st.session_state.start_time = time.time()
-
-st.title("Output Evaluation Demo")
+add_common_page_elements()  # your common sidebar/header
 
 
-
-# 2. Show the ground truth plot for raters to compare
-st.subheader(f"Ground Truth Reference for {entity_name}")
-# embed picture
-st.image("data/ressources/img/eval-demo.png", caption="Ground Truth Distribution (placeholder image)", use_column_width=True)
-
-
-
-# 1. Show the generated text
-st.subheader("LLM Generated Description")
-st.write(llm_output)
-
-# 3. Ask evaluation questions
-st.subheader("Evaluation Questions")
-
-#----------------------------------------
-#faithfulness = st.slider("How faithful is the text to the ground truth?", 1, 7, 4)
-#clarity = st.slider("How clear/readable is the text?", 1, 7, 4)
-#trust = st.slider("How trustworthy/useful is the text?", 1, 7, 4)
-
-# Initialize start time
-if "start_time" not in st.session_state:
-    st.session_state.start_time = time.time()
-
-entity_name = "Candidate A"
+# ------------------------------
+# Helper Functions
+# ------------------------------
+def select_person(player_name, metrics):
+    people = PersonStat()
+    people.calculate_statistics(metrics=metrics)
+    person = copy.deepcopy(people)
+    person.df = person.df[person.df["name"] == player_name]
+    return person.to_data_point()
 
 
-# Helper function to create a voting question
-def vote_question(key, question, options):
-    st.write(question)
-    cols = st.columns(len(options))
-    if key not in st.session_state:
-        st.session_state[key] = None
-    for i, (col, label) in enumerate(zip(cols, options), start=1):
-        if col.button(label, key=f"{key}_{i}"):
-            st.session_state[key] = i
-
-vote_question("vote1", "Does the generated text accurately represent the candidate as depicted in the plot?", 
-              ["Completely inaccurate", "Mostly inaccurate", "Mostly accurate", "Completely accurate"])
-
-vote_question("vote2", "Is the text engaging?", 
-              ["Not engaging", "Somewhat engaging", "Engaging", "Very engaging"])
-# if entity_name in personality_test:
-vote_question("vote3", "How useful would this description be if you were making a hiring decision?", 
-              ["Very unuseful", "Unuseful", "Useful", "Very useful"])
-
-#elif entity_name  in football:
-#vote_question("vote3", "How useful this description is to get information on a football player?", 
-#              ["Very unuseful", "Unuseful", "Useful", "Very useful"])
-#else entity_name in wvs:
-#vote_question("vote3", "How useful would this description is to understand how the world value works?"), 
-#              ["Very unuseful", "Unuseful", "Useful", "Very useful"])
+def select_player(player_name, metrics):
+    players = PlayerStats()
+    players.calculate_statistics(metrics=metrics)
+    player = copy.deepcopy(players)
+    player.df = player.df[player.df["player_name"] == player_name]
+    return player.to_data_point(gender="male", position="Forward")
 
 
-
-if "hallucination" not in st.session_state:
-    st.session_state.hallucination = None
-
-if "comment" not in st.session_state:
-    st.session_state.comment = ""
-
-st.session_state.hallucination = st.radio("Does the text contain hallucinations (unsupported claims)?", ["No", "Yes"])
-st.session_state.comment = st.text_area("Optional comments:")
+def select_country(country_name, metrics):
+    countries = CountryStats()
+    countries.calculate_statistics(metrics=metrics)
+    country = copy.deepcopy(countries)
+    country.df = country.df[country.df["country"] == country_name]
+    return country.to_data_point()
 
 
-# 4. Save response + response time
+def show_entity_plots(entity_type, entity_name, metrics):
+    if entity_type == "person":
+        entity = select_person(entity_name, metrics)
+        dataset = PersonStat()
+        dataset.calculate_statistics(metrics=metrics)
+    elif entity_type == "player":
+        entity = select_player(entity_name, metrics)
+        dataset = PlayerStats()
+        dataset.calculate_statistics(metrics=metrics)
+    else:  # country
+        entity = select_country(entity_name, metrics)
+        dataset = CountryStats()
+        dataset.calculate_statistics(metrics=metrics)
 
-if st.button("Submit and Continue"):
-    response_time = time.time() - st.session_state.start_time
-    st.session_state.start_time = time.time()
+    visual_distribution = DistributionPlot(dataset, entity, metrics)
+    visual_radar = RadarPlot(entity, metrics)
 
-    response_data = {
-        "entity": entity_name,
-        "vote1": st.session_state.vote1,
-        "vote2": st.session_state.vote2,
-        "vote3": st.session_state.vote3,
-        "hallucination": st.session_state.hallucination,
-        "comment": st.session_state.comment,
-        "response_time_sec": round(response_time, 2),
-    }
+    col1, col2 = st.columns(2)
+    with col1: visual_radar.show()
+    with col2: visual_distribution.show()
 
-    st.success("Response submitted! ✅")
-    st.write(response_data)
 
-    st.subheader("Session State Debug:")
-    st.json(st.session_state)
+def vote_question(key, question, options, number=None):
+    label = f"**{number}. {question}**" if number else f"**{question}**"
+    return st.pills(label=label, options=options, key=key)
 
-# send the evaluation
-import smtplib
-from email.mime.text import MIMEText
 
-# Simulated survey result
-#survey_result = {
-#    "vote1": st.session_state.get("vote1", None),
-#    "vote2": st.session_state.get("vote2", None),
-#    "vote3": st.session_state.get("vote3", None),
-#    "hallucination": st.session_state.get("hallucination", None),
-#    "comment": st.session_state.get("comment", ""),
-#}
+def reset_questions():
+    for key in ["faithfulness", "engagement", "usefulness", "hallucination", "comment"]:
+        st.session_state.pop(key, None)
 
-#if st.button("Send Survey via Email"):
-#    sender_email = "your_email@gmail.com"
-#    receiver_email = "recipient@example.com"
-#    password = "your_app_password"  # Use app password for Gmail
 
-#    # Create email message
-#    subject = "Survey Results"
-#    body = f"Here are the survey results:\n\n{survey_result}"
-#    msg = MIMEText(body)
-#    msg["Subject"] = subject
-#    msg["From"] = sender_email
-#    msg["To"] = receiver_email
+# ------------------------------
+# Intro Page
+# ------------------------------
+def show_intro():
+    st.title("Welcome to the Evaluation Study 🎉")
 
-#    try:
-#        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-#            server.login(sender_email, password)
-#            server.sendmail(sender_email, receiver_email, msg.as_string())
-#        st.success("Survey results sent successfully! ✅")
-#    except Exception as e:
-#        st.error(f"Error sending email: {e}")
-# 
+    st.markdown("""
+    Thank you for taking the time to participate in our study!  
+
+    In this evaluation, you will:
+    - Be shown a **plot** for a single entity (person, country, or player).  
+    - Be shown a **generated description** of that plot.  
+    - Answer **four short questions**:  
+        1. Faithfulness – Does the description match the plot?  
+        2. Engagement – Is it engaging?  
+        3. Usefulness – Is it helpful for understanding?  
+        4. Hallucinations – Are there unsupported claims?  
+
+    **How it works:**  
+    - Each page shows **one entity** with its plot + description.  
+    - Answer the four questions, then submit.  
+    - You can evaluate as many as you like (we’d be grateful for at least one).  
+    - You are free to exit anytime.  
+
+    ⚠️ **Note:** We do not collect personal info, only anonymous session activity.
+    """)
+
+    st.button("Start Evaluation ✅", on_click=lambda: st.session_state.update(show_intro=False))
+
+
+# ------------------------------
+# Evaluation Page
+# ------------------------------
+def show_evaluation():
+    st.set_page_config(layout="wide")
+    df = pd.read_csv("evaluation/human-evaluation/data/all_descriptions.csv")
+    conn = st.connection("gsheets", type=GSheetsConnection)
+
+    # Session state init
+    if "rater_id" not in st.session_state:
+        st.session_state.rater_id = str(uuid.uuid4())
+    if "seen" not in st.session_state:
+        st.session_state.seen = set()
+    if "start_time" not in st.session_state:
+        st.session_state.start_time = time.time()
+
+    all_items = list(df[['Name', 'entity']].itertuples(index=False, name=None))
+    remaining = [item for item in all_items if item not in st.session_state.seen]
+
+    if not remaining:
+        st.write("✅ You have completed all evaluations. Thank you!")
+        st.stop()
+
+    if "current_entity" not in st.session_state or st.session_state.current_entity is None:
+        st.session_state.current_entity = random.choice(remaining)
+
+    st.session_state.seen.add(st.session_state.current_entity)
+    entity_name, entity_type = st.session_state.current_entity
+    row = df[(df['Name'] == entity_name) & (df['entity'] == entity_type)].iloc[0]
+
+    # Show reference plot
+    st.subheader(f"Ground Truth Reference for {entity_name} ({entity_type})")
+    if entity_type == "person":
+        metrics = ["extraversion", "neuroticism", "agreeableness", "conscientiousness", "openness"]
+    elif entity_type == "player":
+        metrics = [
+            "npxG_adjusted_per90", "goals_adjusted_per90", "assists_adjusted_per90",
+            "key_passes_adjusted_per90", "smart_passes_adjusted_per90",
+            "final_third_passes_adjusted_per90", "final_third_receptions_adjusted_per90",
+            "ground_duels_won_adjusted_per90", "air_duels_won_adjusted_per90",
+        ]
+    else:  # country
+        metrics = [m for m in CountryStats().df.columns if m not in ["country"]]
+
+    show_entity_plots(entity_type, entity_name, metrics)
+
+    # Centered description + questions
+    
+    center_col = st.columns([2, 6, 2])[1]
+    with center_col:
+        st.subheader("Description")
+        st.write(row.LLMResponse)
+
+        st.subheader("Questions")
+        vote_question("faithfulness", "Does the text accurately represent the plot?", 
+                      ["Completely inaccurate", "Mostly inaccurate", "Mostly accurate", "Completely accurate"], 1)
+        vote_question("engagement", "Is the text engaging?", 
+                      ["Not engaging", "Somewhat engaging", "Engaging", "Very engaging"], 2)
+
+        if entity_type == "person":
+            usefulness_q = "How useful is this description for a hiring decision?"
+        elif entity_type == "country":
+            usefulness_q = "How useful is this description for understanding the world value?"
+        else:
+            usefulness_q = "How useful is this description for learning about a football player?"
+
+        vote_question("usefulness", usefulness_q, 
+                      ["Very unuseful", "Unuseful", "Useful", "Very useful"], 3)
+
+        vote_question("hallucination", "Does the text contain hallucinations (unsupported claims)?", ["No", "Yes"], 4)
+
+        if st.session_state.get("hallucination") == "Yes":
+            st.session_state.comment = st.text_area(
+                "**5. Please highlight hallucinated parts of the text (optional):**"
+            )
+
+        # Submit
+        if st.button("Submit and Continue", disabled=st.session_state.get("submitting", False)):
+            st.session_state.submitting = True
+            with st.spinner("Submitting your response..."):
+                required = ["faithfulness", "engagement", "usefulness", "hallucination"]
+                missing = [f for f in required if st.session_state.get(f) is None]
+                if missing:
+                    st.error(f"❌ Please answer all required questions: {', '.join(missing)}")
+                    st.session_state.submitting = False
+                    st.stop()
+
+                response_time = time.time() - st.session_state.start_time
+                response_data = {
+                    "rater_id": st.session_state.rater_id,
+                    "entity": entity_type,
+                    "entity_id": row.Name,
+                    "faithfulness": st.session_state.faithfulness,
+                    "engagement": st.session_state.engagement,
+                    "usefulness": st.session_state.usefulness,
+                    "hallucination": st.session_state.hallucination,
+                    "comment": st.session_state.get("comment", ""),
+                    "response_time_sec": round(response_time, 2),
+                    "timestamp": pd.Timestamp.now().isoformat()
+                }
+
+                # Append new row (instead of full read+concat)
+                existing = conn.read(ttl=0)
+                update = pd.concat([existing, pd.DataFrame([response_data])], ignore_index=True)
+                conn.update(worksheet="Sheet1", data=update)
+
+                st.success("✅ Response submitted!")
+                time.sleep(2)
+
+                # Reset for next round
+                reset_questions()
+                st.session_state.current_entity = None
+                st.session_state.start_time = time.time()
+                st.session_state.submitting = False
+                st.rerun()
+
+
+# ------------------------------
+# Main
+# ------------------------------
+if st.session_state.get("show_intro", True):
+    show_intro()
+else:
+    show_evaluation()
