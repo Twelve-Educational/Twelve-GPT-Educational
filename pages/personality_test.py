@@ -67,16 +67,10 @@ chat = create_chat(to_hash, PersonChat, person, persons)
 
 # Now we want to add basic content to chat if it's empty
 if chat.state == "empty":
-
-    # Make a plot of the distribution of the metrics for all players
-    # We reverse the order of the elements in metrics for plotting (because they plot from bottom to top)
-    #visual = DistributionPlotPersonality(metrics[::-1])
-    #visual.add_title_from_person(person)
-    #visual.add_persons(persons, metrics=metrics)
-    #visual.add_person(person, len(persons.df), metrics=metrics)
-
     visual = visual_distribution
     visual2 = visual_radar
+    
+
 
     # Now call the description class to get the summary of the player
     description = PersonDescription(person)
@@ -89,8 +83,13 @@ if chat.state == "empty":
         user_only=False,
         visible=False,
     )
-    chat.add_message(visual)
-    chat.add_message(visual2)
+
+    # Use columns for side-by-side layout
+    col1, col2 = st.columns(2)
+    with col1: visual.show()
+    with col2: visual2.show()
+
+    
     chat.add_message(summary)
 
     chat.state = "default"
