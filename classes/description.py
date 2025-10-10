@@ -537,15 +537,11 @@ class PersonDescription(Description):
                 description = f"{self.categorie_description(z_score)}{cat_1}{pos_desc}"
                 if z_score > 1:
                     index_max = person_metrics[start:end].idxmax()
-                    print(person_metrics[start:end])
-                    print(index_max, "max", questions[index_max][1])
                     description += f"In particular they said that {questions[index_max][0]}. "
             else:
                 description = f"{self.categorie_description(z_score)}{cat_0}{neg_desc}"
                 if z_score < -1:
                     index_min = person_metrics[start:end].idxmin()
-                    print(person_metrics[start:end])
-                    print(index_min, "min", questions[index_min][1])
                     description += f"In particular they said that {questions[index_min][0]}. "
 
             text_parts.append(description)
