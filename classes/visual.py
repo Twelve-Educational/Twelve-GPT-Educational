@@ -87,7 +87,7 @@ class Visual:
         )
 
     def _setup_styles(self):
-        side_margin = 60
+        side_margin = 55
         top_margin = 75
         pad = 16
         self.fig.update_layout(
