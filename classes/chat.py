@@ -19,7 +19,8 @@ from classes.description import (
 )
 from classes.embeddings import PlayerEmbeddings, CountryEmbeddings, PersonEmbeddings
 
-from classes.visual import Visual, DistributionPlot, DistributionPlotPersonality
+
+from classes.visual import DistributionPlot, RadarPlot
 
 import utils.sentences as sentences
 from utils.gemini import convert_messages_format
@@ -154,7 +155,9 @@ class Chat:
             st.write(content)
 
         # Visual
-        elif isinstance(content, Visual):
+        elif isinstance(content, DistributionPlot):
+            content.show()
+        elif isinstance(content, RadarPlot):
             content.show()
 
         else:
@@ -185,7 +188,7 @@ class Chat:
             group = list(group)
 
             if key == "assistant":
-                avatar = "data/ressources/img/twelve_robot.jpg"
+                avatar = "data/ressources/img/logo_pink.png"
             else:
                 try:
                     avatar = st.session_state.user_info["picture"]

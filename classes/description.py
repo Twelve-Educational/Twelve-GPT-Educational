@@ -413,9 +413,12 @@ class CountryDescription(Description):
 
     def get_prompt_messages(self):
         prompt = (
-            f"Please use the statistical description enclosed with ``` to give a concise, 2 short paragraph summary of the social values held by population of the country. "
-            f"The first paragraph should focus on any factors or values for which the country is above or bellow average. If the country is neither above nor below average in any values, mention that. "
-            f"The remaining paragraph should mention any specific values or factors that are neither high nor low compared to the average. "
+            f"Using the statistical description enclosed in ```, write a short, engaging summary (3–4 sentences) of the country’s social values."
+            f"If there are several ways in which a country stands one the first two sentences should highlight these, expressed in a natural and people-focused way."
+            f"If there is only one or two differences then these should be summarised in a single sentence."
+            f"The next sentence should  then briefly list the respects the country is close to the global average. "
+            f"The final sentence should express what these values might mean for how citizens see themselves or are characterized as a society."
+            f" Keep the tone concise, interpretive, and people-oriented rather than technical."
         )
         return [{"role": "user", "content": prompt}]
 
@@ -484,13 +487,14 @@ class PersonDescription(Description):
         elif -1 < value <= -0.5:
             return "The candidate is quite "
         elif -0.5 < value <= 0.5:
-            return "The candidate is relatively "
+            return "The candidate is only slightly "
         elif 0.5 < value <= 1:
             return "The candidate is quite "
         elif 1 < value <= 2:
             return "The candidate is very "
         else:
             return "The candidate is extremely "
+
 
     def all_max_indices(self, row):
         max_value = row.max()
@@ -501,11 +505,58 @@ class PersonDescription(Description):
         return list(row[row == min_value].index)
 
     def get_description(self, person):
+        person_metrics = person.ser_metrics
+        person_stat = PersonStat()
+        questions = person_stat.get_questions()
+
+        traits = [
+            ("extraversion", "solitary and reserved. ", "outgoing and energetic. ",
+            "The candidate tends to be more social. ", "The candidate tends to be less social. "),
+            ("neuroticism", "resilient and confident. ", "sensitive and nervous. ",
+            "The candidate tends to feel more negative emotions and anxiety. ",
+            "The candidate tends to feel less negative emotions and anxiety. "),
+            ("agreeableness", "critical and rational. ", "friendly and compassionate. ",
+            "The candidate tends to be more cooperative, polite, kind and friendly. ",
+            "The candidate tends to be less cooperative, polite, kind and friendly. "),
+            ("conscientiousness", "extravagant and careless. ", "efficient and organized. ",
+            "The candidate tends to be more careful or diligent. ",
+            "The candidate tends to be less careful or diligent. "),
+            ("openness", "consistent and cautious. ", "inventive and curious. ",
+            "The candidate tends to be more open to new ideas and experiences. ",
+            "The candidate tends to be less open to new ideas and experiences. ")
+        ]
+
+        text_parts = []
+
+        for i, (trait, cat_0, cat_1, pos_desc, neg_desc) in enumerate(traits):
+            z_score = person_metrics[f"{trait}_Z"]
+            start, end = i * 10, (i + 1) * 10
+
+            # Base description
+            if z_score > 0:
+                description = f"{self.categorie_description(z_score)}{cat_1}{pos_desc}"
+                if z_score > 1:
+                    index_max = person_metrics[start:end].idxmax()
+                    description += f"In particular they said that {questions[index_max][0]}. "
+            else:
+                description = f"{self.categorie_description(z_score)}{cat_0}{neg_desc}"
+                if z_score < -1:
+                    index_min = person_metrics[start:end].idxmin()
+                    description += f"In particular they said that {questions[index_min][0]}. "
+
+            text_parts.append(description)
+
+        final_text = "".join(text_parts).replace(",", "")
+        return final_text
+
+
+    def get_description2(self, person):
         # here we need the dataset to check the min and max score of the person
 
         person_metrics = person.ser_metrics
         person_stat = PersonStat()
         questions = person_stat.get_questions()
+        
 
         name = person.name
         extraversion = person_metrics["extraversion_Z"]
@@ -558,6 +609,7 @@ class PersonDescription(Description):
             )
             if neuroticism > 1:
                 index_max = person_metrics[10:20].idxmax()
+               
                 text_2 = (
                     "In particular they said that " + questions[index_max][0] + ". "
                 )
@@ -570,7 +622,8 @@ class PersonDescription(Description):
                 + "The candidate tends to feel less negative emotions and anxiety. "
             )
             if neuroticism < -1:
-                index_min = person_metrics[10:20].idxmin()
+                index_min = person_metrics[10:20].idxmin()  
+                
                 text_2 = (
                     "In particular they said that " + questions[index_min][0] + ". "
                 )
@@ -589,6 +642,7 @@ class PersonDescription(Description):
             )
             if agreeableness > 1:
                 index_max = person_metrics[20:30].idxmax()
+             
                 text_2 = (
                     "In particular they said that " + questions[index_max][0] + ". "
                 )
@@ -602,6 +656,7 @@ class PersonDescription(Description):
             )
             if agreeableness < -1:
                 index_min = person_metrics[20:30].idxmin()
+             
                 text_2 = (
                     "In particular they said that " + questions[index_min][0] + ". "
                 )
@@ -620,6 +675,7 @@ class PersonDescription(Description):
             )
             if conscientiousness > 1:
                 index_max = person_metrics[30:40].idxmax()
+
                 text_2 = (
                     "In particular they said that " + questions[index_max][0] + ". "
                 )
@@ -632,6 +688,7 @@ class PersonDescription(Description):
             )
             if conscientiousness < -1:
                 index_min = person_metrics[30:40].idxmin()
+
                 text_2 = (
                     "In particular they said that " + questions[index_min][0] + ". "
                 )
@@ -650,6 +707,7 @@ class PersonDescription(Description):
             )
             if openness > 1:
                 index_max = person_metrics[40:50].idxmax()
+        
                 text_2 = (
                     "In particular they said that " + questions[index_max][0] + ". "
                 )
@@ -662,6 +720,7 @@ class PersonDescription(Description):
             )
             if openness < -1:
                 index_min = person_metrics[40:50].idxmin()
+             
                 text_2 = (
                     "In particular they said that " + questions[index_min][0] + ". "
                 )
@@ -681,10 +740,11 @@ class PersonDescription(Description):
 
     def get_prompt_messages(self):
         prompt = (
-            f"Please use the statistical description enclosed with ``` to give a concise, 4 sentence summary of the person's personality, strengths and weaknesses. "
-            f"The first sentence should use varied language to give an overview of the person. "
-            "The second sentence should describe the person's specific strengths based on the metrics. "
-            "The third sentence should describe aspects in which the person is average and/or weak based on the statistics. "
-            "Finally, summarise exactly how the person compares to others in the same position. "
+            f"Use the statistical personality description provided below to write 3 sentences describing the person."
+             "The first sentence should provide a general description of the person."
+             "The second sentence should mention any particular strengths or potential challenges reported. "
+             "The third sentence should conclude what type of professional environment they will likely thrive in."
+             "Maintain an HR-appropriate tone and the text should be interpretive but not speculative. "
+             "The sentences should flow naturally and read like a professional, concise summary rather than a list."
         )
         return [{"role": "user", "content": prompt}]

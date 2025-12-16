@@ -2,7 +2,7 @@ fastapi==0.104.1
 uvicorn==0.24.0.post1
 pandas==2.2.0
 requests==2.29.0
-streamlit==1.31.0
+streamlit==1.48.0
 numpy==1.26.3
 openai==0.28.1
 openai[embeddings]==0.28.1
@@ -10,3 +10,9 @@ google-generativeai==0.7.2
 tiktoken
 python-jose==3.3.0
 customerio==2.1
+scipy==1.16.1
+plotly==6.0.1
+matplotlib==3.10.0
+sklearn-pandas==2.2.0
+openpyxl==3.1.5
+st-gsheets-connection==0.1.0
