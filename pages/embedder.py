@@ -1,25 +1,14 @@
 # Library imports
 import streamlit as st
 import pandas as pd
-import argparse
 import tiktoken
 import os
 from utils.utils import normalize_text
-
-from classes.data_source import PlayerStats
-from classes.data_point import Player
 
 
 from utils.page_components import add_common_page_elements
 
 from classes.embeddings import Embeddings
-
-
-def file_walk(path):
-    for root, dirs, files in os.walk(path):
-        for name in files:
-            if not name.endswith(".DS_Store"):  # Skip .DS_Store files
-                yield root, name
 
 
 def get_format(path):
@@ -42,9 +31,7 @@ def embed(file_path, embeddings):
         file_format, ".parquet"
     )
 
-    st.write(embedding_path)
-
-    st.write(df)
+    st.write(f"Embedding file: {file_path}")
     # Check if the content of user exceeds max token length
     tokenizer = tiktoken.get_encoding("cl100k_base")
     df["user_tokens"] = df["user"].apply(lambda x: len(tokenizer.encode(x)))
@@ -62,10 +49,10 @@ def embed(file_path, embeddings):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+    st.write("Embedded file:")
+    st.write(df)
     df.to_parquet(embedding_path, index=False)
 
-
-# def show():
 
 sidebar_container = add_common_page_elements()
 
@@ -73,13 +60,54 @@ st.divider()
 
 embeddings = Embeddings()
 
-directory = st.text_input("Directory to embedd", "")
-st.write("Starting to embedd " + directory)
+# Get list of files in data/describe folder
+describe_folder = "data/describe"
+available_files = []
 
-path_describe = os.path.normpath("data/describe/" + directory)
-path_embedded = os.path.normpath("data/embeddings/" + directory)
+for root, dirs, files in os.walk(describe_folder):
+    for file in files:
+        if not file.endswith(".DS_Store"):
+            # Get relative path from describe folder
+            rel_path = os.path.relpath(os.path.join(root, file), describe_folder)
+            available_files.append(rel_path)
 
-st.write("Updating all embeddings...")
-for root, name in file_walk(path_describe):
-    print_path = os.path.join(root, name).replace(path_describe, "")[1:]
-    embed(os.path.join(root, name), embeddings)
+if not available_files:
+    st.warning("No files found in data/describe folder")
+else:
+    # File selection dropdown
+    selected_file = st.selectbox(
+        "Select a file to embed",
+        options=available_files,
+        index=0
+    )
+    
+    # Show selected file path
+    full_path = os.path.join(describe_folder, selected_file)
+    st.info(f"Selected file: {full_path}")
+    
+    # Display the file contents
+    try:
+        file_format, read_func = get_format(full_path)
+        df = read_func(full_path)
+        st.dataframe(df, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error reading file: {str(e)}")
+    
+    # Check if file is already embedded
+    try:
+        embedding_path = full_path.replace("describe", "embeddings").replace(
+            file_format, ".parquet"
+        )
+        is_embedded = os.path.exists(embedding_path)
+    except:
+        is_embedded = False
+    
+    # Embed / Re-embed button
+    button_label = "Re-embed File" if is_embedded else "Embed File"
+    if st.button(button_label, type="primary"):
+        st.write(f"Starting to embed {selected_file}...")
+        try:
+            embed(full_path, embeddings)
+            st.success(f"Successfully embedded {selected_file}!")
+        except Exception as e:
+            st.error(f"Error embedding file: {str(e)}")

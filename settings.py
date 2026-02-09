@@ -1,7 +1,9 @@
 import os
 import streamlit as st
 
-ENGINE_ADA = st.secrets.get("ENGINE_ADA")
+GPT_EMBEDDINGS_ENGINE = st.secrets.get("GPT_EMBEDDINGS_ENGINE")
+GPT_EMBEDDINGS_KEY = st.secrets.get("GPT_EMBEDDINGS_KEY")
+
 GPT_DEFAULT = "3.5"
 GPT3_BASE = st.secrets.get("GPT_BASE")
 GPT3_VERSION = st.secrets.get("GPT_VERSION")

@@ -202,6 +202,7 @@ class Description(ABC):
             answer = response.text
         else:
             # Use OpenAI API
+            openai.api_type = "azure"
             openai.api_base = GPT_BASE
             openai.api_version = GPT_VERSION
             openai.api_key = GPT_KEY
