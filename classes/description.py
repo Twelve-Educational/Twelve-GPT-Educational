@@ -25,8 +25,6 @@ else:
 import streamlit as st
 import random
 
-openai.api_type = "azure"
-
 
 class Description(ABC):
     gpt_examples_base = "data/gpt_examples"
