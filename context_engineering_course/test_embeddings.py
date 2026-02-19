@@ -1,3 +1,14 @@
+"""
+Course starter: embedding API smoke test.
+
+Purpose:
+- Sends one text string to the configured embedding model and prints basic output.
+
+Usage:
+- Ensure `.streamlit/secrets.toml` is configured.
+- Run: `python context_engineering_course/test_embeddings.py`
+"""
+
 from openai import OpenAI
 from settings import GPT_EMBEDDINGS_MODEL, GPT_BASE, GPT_KEY, USE_GEMINI, GEMINI_API_KEY, GEMINI_EMBEDDING_MODEL
 
