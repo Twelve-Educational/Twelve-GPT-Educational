@@ -43,7 +43,7 @@ person = select_person(sidebar_container, persons)
 
 # Chat state hash determines whether or not we should load a new chat or continue an old one
 # We can add or remove variables to this hash to change conditions for loading a new chat
-to_hash = (person.id,)
+to_hash = (person.id,"personality_test")
 # Now create the chat as type PlayerChat
 chat = create_chat(to_hash, PersonChat, person, persons)
 
