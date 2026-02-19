@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 from itertools import groupby
 from types import GeneratorType
 import pandas as pd
@@ -10,7 +10,7 @@ from settings import USE_GEMINI
 if USE_GEMINI:
     from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
 else:
-    from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_CHAT_MODEL
+    from settings import GPT_BASE, GPT_KEY, GPT_CHAT_MODEL
 
 from classes.description import (
     PlayerDescription,
@@ -23,8 +23,6 @@ from classes.visual import Visual, DistributionPlot, DistributionPlotPersonality
 
 import utils.sentences as sentences
 from utils.gemini import convert_messages_format
-
-openai.api_type = "azure"
 
 
 class Chat:
@@ -131,16 +129,13 @@ class Chat:
 
             answer = response.text
         else:
-            # Call the GPT-4 API
-            openai.api_base = GPT_BASE
-            openai.api_version = GPT_VERSION
-            openai.api_key = GPT_KEY
-
-            response = openai.ChatCompletion.create(
-                engine=GPT_CHAT_MODEL, messages=messages
+            client = OpenAI(api_key=GPT_KEY, base_url=GPT_BASE)
+            response = client.responses.create(
+                model=GPT_CHAT_MODEL,
+                input=messages,
             )
 
-            answer = response["choices"][0]["message"]["content"]
+            answer = response.output_text
         message = {"role": "assistant", "content": answer}
 
         # Add the returned value to the messages.

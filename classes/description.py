@@ -1,11 +1,10 @@
-import math
 from abc import ABC, abstractmethod
-from typing import List, Union, Dict, Optional
+from typing import List, Union, Dict
 
 import pandas as pd
-import tiktoken
-import openai
-import numpy as np
+
+from openai import OpenAI
+
 
 import utils.sentences as sentences
 from utils.gemini import convert_messages_format
@@ -20,10 +19,10 @@ from settings import USE_GEMINI
 if USE_GEMINI:
     from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
 else:
-    from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_CHAT_MODEL
+    from settings import GPT_BASE, GPT_KEY, GPT_CHAT_MODEL
 
 import streamlit as st
-import random
+
 
 
 class Description(ABC):
@@ -141,7 +140,7 @@ class Description(ABC):
             messages += self.get_messages_from_excel(paths)
         except (
             FileNotFoundError
-        ) as e:  # FIXME: When merging with new_training, add the other exception
+        ) as e:  
             print(e)
         messages += self.get_prompt_messages()
 
@@ -155,7 +154,7 @@ class Description(ABC):
             )
         except (
             FileNotFoundError
-        ) as e:  # FIXME: When merging with new_training, add the other exception
+        ) as e:  
             print(e)
 
         messages += [
@@ -199,19 +198,14 @@ class Description(ABC):
 
             answer = response.text
         else:
-            # Use OpenAI API
-            openai.api_type = "azure"
-            openai.api_base = GPT_BASE
-            openai.api_version = GPT_VERSION
-            openai.api_key = GPT_KEY
-
-            response = openai.ChatCompletion.create(
-                engine=GPT_CHAT_MODEL,
-                messages=self.messages,
+            client = OpenAI(api_key=GPT_KEY, base_url=GPT_BASE)
+            response = client.responses.create(
+                model=GPT_CHAT_MODEL,
+                input=self.messages,
                 temperature=temperature,
             )
 
-            answer = response["choices"][0]["message"]["content"]
+            answer = response.output_text
 
         return answer
 

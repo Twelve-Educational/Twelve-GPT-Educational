@@ -1,12 +1,8 @@
 import pandas as pd
-import openai
 from utils.embeddings_utils import get_embedding, cosine_similarity
 
 from settings import (
     GPT_EMBEDDINGS_MODEL,
-    GPT_BASE,
-    GPT_VERSION,
-    GPT_KEY,
     USE_GEMINI,
     GEMINI_EMBEDDING_MODEL,
     GEMINI_API_KEY,
@@ -28,10 +24,6 @@ class Embeddings:
             genai.configure(api_key=GEMINI_API_KEY)
             ENGINE = GEMINI_EMBEDDING_MODEL
         else:
-            openai.api_base = GPT_BASE
-            openai.api_version = GPT_VERSION
-            openai.api_key = GPT_KEY
-            # text-embedding-ada-002 (Version 2) model
             ENGINE = GPT_EMBEDDINGS_MODEL
         embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI)
 
@@ -61,11 +53,6 @@ class Embeddings:
             genai.configure(api_key=GEMINI_API_KEY)
             ENGINE = GEMINI_EMBEDDING_MODEL
         else:
-            openai.api_type = "azure"
-            openai.api_base = GPT_BASE
-            openai.api_version = GPT_VERSION
-            openai.api_key = GPT_KEY
-            # text-embedding-ada-002 (Version 2) model
             ENGINE = GPT_EMBEDDINGS_MODEL
         embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI)
 
@@ -77,9 +64,7 @@ class PlayerEmbeddings(Embeddings):
         self.df_dict = PlayerEmbeddings.get_embeddings()
 
     def get_embeddings():
-        # Gets all embeddings
-        df_embeddings_dict = dict()
-
+        # Gets all relevant embeddings
         files = [
             "Interpretation",
             "Forward",
@@ -107,9 +92,7 @@ class CountryEmbeddings(Embeddings):
         self.df_dict = CountryEmbeddings.get_embeddings()
 
     def get_embeddings():
-        # Gets all embeddings
-        df_embeddings_dict = dict()
-
+        # Gets all relevant embeddings
         files = [
             "WVS_qualities",
         ]

@@ -1,5 +1,5 @@
-import openai
-from settings import GPT_EMBEDDINGS_MODEL, GPT_BASE, GPT_VERSION, GPT_KEY, USE_GEMINI, GEMINI_API_KEY, GEMINI_EMBEDDING_MODEL
+from openai import OpenAI
+from settings import GPT_EMBEDDINGS_MODEL, GPT_BASE, GPT_KEY, USE_GEMINI, GEMINI_API_KEY, GEMINI_EMBEDDING_MODEL
 
 # Text to embed
 text = "Hi, how are you doing today? I hope you're having a great day! This is a test of the embedding function. Let's see how it works."
@@ -18,12 +18,9 @@ if USE_GEMINI:
     )
     embedding = result["embedding"]
 else:
-    openai.api_type = "azure"
-    openai.api_base = GPT_BASE
-    openai.api_version = GPT_VERSION
-    openai.api_key = GPT_KEY
-    result = openai.Embedding.create(input=[text], engine=GPT_EMBEDDINGS_MODEL)
-    embedding = result["data"][0]["embedding"]
+    client = OpenAI(api_key=GPT_KEY, base_url=GPT_BASE)
+    result = client.embeddings.create(input=[text], model=GPT_EMBEDDINGS_MODEL)
+    embedding = result.data[0].embedding
 
 # Print results
 print(f"Text: {text}")
