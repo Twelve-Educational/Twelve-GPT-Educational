@@ -10,7 +10,14 @@ from settings import USE_GEMINI
 if USE_GEMINI:
     from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
 else:
-    from settings import GPT_BASE, GPT_KEY, GPT_CHAT_MODEL
+    from settings import (
+        GPT_BASE,
+        GPT_KEY,
+        GPT_CHAT_MODEL,
+        GPT_SUPPORTS_REASONING,
+        GPT_AVAILABLE_REASONING_EFFORTS,
+        GPT_SUPPORTS_TEMPERATURE,
+    )
 
 from classes.description import (
     PlayerDescription,
@@ -76,7 +83,7 @@ class Chat:
 
     #         self.handle_input(x)
 
-    def handle_input(self, input):
+    def handle_input(self, input, reasoning_effort=None, temperature=1, stream=False):
         """
         The main function that calls the GPT-4 API and processes the response.
         """
@@ -130,12 +137,56 @@ class Chat:
             answer = response.text
         else:
             client = OpenAI(api_key=GPT_KEY, base_url=GPT_BASE)
-            response = client.responses.create(
-                model=GPT_CHAT_MODEL,
-                input=messages,
-            )
+            if stream:
+                if GPT_SUPPORTS_REASONING:
+                    reasoning_effort = reasoning_effort if reasoning_effort in GPT_AVAILABLE_REASONING_EFFORTS else GPT_AVAILABLE_REASONING_EFFORTS[0]
+                    response_stream = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=messages,
+                        reasoning={"effort": reasoning_effort},
+                        stream=True,
+                    )
+                elif GPT_SUPPORTS_TEMPERATURE:
+                    response_stream = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=messages,
+                        temperature=temperature,
+                        stream=True,
+                    )
+                else:
+                    response_stream = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=messages,
+                        stream=True,
+                    )
 
-            answer = response.output_text
+                def streamed_chunks():
+                    for event in response_stream:
+                        if event.type == "response.output_text.delta":
+                            yield event.delta
+
+                answer = streamed_chunks()
+            else:
+                if GPT_SUPPORTS_REASONING:
+                    reasoning_effort = reasoning_effort if reasoning_effort in GPT_AVAILABLE_REASONING_EFFORTS else GPT_AVAILABLE_REASONING_EFFORTS[0]
+                    response = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=messages,
+                        reasoning={"effort": reasoning_effort},
+                    )
+                elif GPT_SUPPORTS_TEMPERATURE:
+                    response = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=messages,
+                        temperature=temperature,
+                    )
+                else:
+                    response = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=messages,
+                    )
+
+                answer = response.output_text
         message = {"role": "assistant", "content": answer}
 
         # Add the returned value to the messages.
@@ -187,11 +238,15 @@ class Chat:
                 except:
                     avatar = None
 
-            message = st.chat_message(name=key, avatar=avatar)
-            with message:
+            message_block = st.chat_message(name=key, avatar=avatar)
+            with message_block:
                 for message in group:
                     content = message["content"]
-                    self.display_content(content)
+                    if isinstance(content, GeneratorType):
+                        final_text = st.write_stream(content)
+                        message["content"] = final_text
+                    else:
+                        self.display_content(content)
 
     def save_state(self):
         """
@@ -220,7 +275,7 @@ class PlayerChat(Chat):
                     f"Your message is too long ({len(x)} characters). Please keep it under 500 characters."
                 )
 
-            self.handle_input(x)
+            self.handle_input(x, stream=True)
 
     def instruction_messages(self):
         """
@@ -295,7 +350,7 @@ class WVSChat(Chat):
                     f"Your message is too long ({len(x)} characters). Please keep it under 500 characters."
                 )
 
-            self.handle_input(x)
+            self.handle_input(x, stream=True)
 
     def instruction_messages(self):
         """
@@ -404,4 +459,4 @@ class PersonChat(Chat):
                     f"Your message is too long ({len(x)} characters). Please keep it under 500 characters."
                 )
 
-            self.handle_input(x)
+            self.handle_input(x, stream=True)

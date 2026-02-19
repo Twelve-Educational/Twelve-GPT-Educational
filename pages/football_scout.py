@@ -89,7 +89,7 @@ if chat.state == "empty":
 
     # Now call the description class to get the summary of the player
     description = PlayerDescription(player)
-    summary = description.stream_gpt()
+    summary = description.stream_gpt(stream=True)
 
     # Add the visual and summary to the chat
     chat.add_message(

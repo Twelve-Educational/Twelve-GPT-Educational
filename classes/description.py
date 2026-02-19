@@ -19,7 +19,14 @@ from settings import USE_GEMINI
 if USE_GEMINI:
     from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
 else:
-    from settings import GPT_BASE, GPT_KEY, GPT_CHAT_MODEL
+    from settings import (
+        GPT_BASE,
+        GPT_KEY,
+        GPT_CHAT_MODEL,
+        GPT_SUPPORTS_REASONING,
+        GPT_AVAILABLE_REASONING_EFFORTS,
+        GPT_SUPPORTS_TEMPERATURE,
+    )
 
 import streamlit as st
 
@@ -165,7 +172,7 @@ class Description(ABC):
         ]
         return messages
 
-    def stream_gpt(self, temperature=1):
+    def stream_gpt(self, temperature=1, reasoning_effort=None, stream=False):
         """
         Run the GPT model on the messages and stream the output.
 
@@ -199,13 +206,56 @@ class Description(ABC):
             answer = response.text
         else:
             client = OpenAI(api_key=GPT_KEY, base_url=GPT_BASE)
-            response = client.responses.create(
-                model=GPT_CHAT_MODEL,
-                input=self.messages,
-                temperature=temperature,
-            )
+            if stream:
+                if GPT_SUPPORTS_REASONING:
+                    reasoning_effort = reasoning_effort if reasoning_effort in GPT_AVAILABLE_REASONING_EFFORTS else GPT_AVAILABLE_REASONING_EFFORTS[0]
+                    response_stream = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=self.messages,
+                        reasoning={"effort": reasoning_effort},
+                        stream=True,
+                    )
+                elif GPT_SUPPORTS_TEMPERATURE:
+                    response_stream = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=self.messages,
+                        temperature=temperature,
+                        stream=True,
+                    )
+                else:
+                    response_stream = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=self.messages,
+                        stream=True,
+                    )
 
-            answer = response.output_text
+                def streamed_chunks():
+                    for event in response_stream:
+                        if event.type == "response.output_text.delta":
+                            yield event.delta
+
+                answer = streamed_chunks()
+            else:
+                if GPT_SUPPORTS_REASONING:
+                    reasoning_effort = reasoning_effort if reasoning_effort in GPT_AVAILABLE_REASONING_EFFORTS else GPT_AVAILABLE_REASONING_EFFORTS[0]
+                    response = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=self.messages,
+                        reasoning={"effort": reasoning_effort},
+                    )
+                elif GPT_SUPPORTS_TEMPERATURE:
+                    response = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=self.messages,
+                        temperature=temperature,
+                    )
+                else:
+                    response = client.responses.create(
+                        model=GPT_CHAT_MODEL,
+                        input=self.messages,
+                    )
+
+                answer = response.output_text
 
         return answer
 
