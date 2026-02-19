@@ -3,10 +3,10 @@ import openai
 from utils.embeddings_utils import get_embedding, cosine_similarity
 
 from settings import (
-    GPT_EMBEDDINGS_ENGINE,
-    GPT3_BASE,
-    GPT3_VERSION,
-    GPT_EMBEDDINGS_KEY,
+    GPT_EMBEDDINGS_MODEL,
+    GPT_BASE,
+    GPT_VERSION,
+    GPT_KEY,
     USE_GEMINI,
     GEMINI_EMBEDDING_MODEL,
     GEMINI_API_KEY,
@@ -28,11 +28,11 @@ class Embeddings:
             genai.configure(api_key=GEMINI_API_KEY)
             ENGINE = GEMINI_EMBEDDING_MODEL
         else:
-            openai.api_base = GPT3_BASE
-            openai.api_version = GPT3_VERSION
-            openai.api_key = GPT_EMBEDDINGS_KEY
+            openai.api_base = GPT_BASE
+            openai.api_version = GPT_VERSION
+            openai.api_key = GPT_KEY
             # text-embedding-ada-002 (Version 2) model
-            ENGINE = GPT_EMBEDDINGS_ENGINE
+            ENGINE = GPT_EMBEDDINGS_MODEL
         embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI)
 
         # An option for the future is to take the top from each dataframe, so we get a mixture of responses.
@@ -48,7 +48,7 @@ class Embeddings:
     def compare_strings(self, string1, string2):
         # Use this function to compare two strings or words embeddings
         # Returns co-sine similarilty between the two strings
-        ENGINE = GEMINI_EMBEDDING_MODEL if USE_GEMINI else GPT_EMBEDDINGS_ENGINE
+        ENGINE = GEMINI_EMBEDDING_MODEL if USE_GEMINI else GPT_EMBEDDINGS_MODEL
         embedding1 = get_embedding(string1, engine=ENGINE, use_gemini=USE_GEMINI)
         embedding2 = get_embedding(string2, engine=ENGINE, use_gemini=USE_GEMINI)
 
@@ -62,11 +62,11 @@ class Embeddings:
             ENGINE = GEMINI_EMBEDDING_MODEL
         else:
             openai.api_type = "azure"
-            openai.api_base = GPT3_BASE
-            openai.api_version = GPT3_VERSION
-            openai.api_key = GPT_EMBEDDINGS_KEY
+            openai.api_base = GPT_BASE
+            openai.api_version = GPT_VERSION
+            openai.api_key = GPT_KEY
             # text-embedding-ada-002 (Version 2) model
-            ENGINE = GPT_EMBEDDINGS_ENGINE
+            ENGINE = GPT_EMBEDDINGS_MODEL
         embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI)
 
         return embedding

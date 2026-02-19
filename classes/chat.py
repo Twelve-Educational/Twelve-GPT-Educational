@@ -10,7 +10,7 @@ from settings import USE_GEMINI
 if USE_GEMINI:
     from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
 else:
-    from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_ENGINE
+    from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_CHAT_MODEL
 
 from classes.description import (
     PlayerDescription,
@@ -137,7 +137,7 @@ class Chat:
             openai.api_key = GPT_KEY
 
             response = openai.ChatCompletion.create(
-                engine=GPT_ENGINE, messages=messages
+                engine=GPT_CHAT_MODEL, messages=messages
             )
 
             answer = response["choices"][0]["message"]["content"]

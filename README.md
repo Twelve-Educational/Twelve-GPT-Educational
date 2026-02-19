@@ -90,7 +90,8 @@ USE_GEMINI = false
 GPT_BASE = "address of you deployment of Chat GPT"
 GPT_VERSION = "version date"
 GPT_KEY = "your key"
-GPT_ENGINE = "model name"
+GPT_CHAT_MODEL = "chat model name"
+GPT_EMBEDDINGS_MODEL = "embedding model name"
 ```
 
 ### Using Gemini API

@@ -20,7 +20,7 @@ from settings import USE_GEMINI
 if USE_GEMINI:
     from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
 else:
-    from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_ENGINE
+    from settings import GPT_BASE, GPT_VERSION, GPT_KEY, GPT_CHAT_MODEL
 
 import streamlit as st
 import random
@@ -206,7 +206,7 @@ class Description(ABC):
             openai.api_key = GPT_KEY
 
             response = openai.ChatCompletion.create(
-                engine=GPT_ENGINE,
+                engine=GPT_CHAT_MODEL,
                 messages=self.messages,
                 temperature=temperature,
             )
