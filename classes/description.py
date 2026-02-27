@@ -19,7 +19,7 @@ from settings import USE_GEMINI, USE_LM_STUDIO
 if USE_GEMINI:
     from settings import GEMINI_API_KEY, GEMINI_CHAT_MODEL
 elif USE_LM_STUDIO:
-    from settings import LM_STUDIO_API_KEY, LM_STUDIO_CHAT_MODEL
+    from settings import LM_STUDIO_API_KEY, LM_STUDIO_CHAT_MODEL, LM_STUDIO_API_BASE
 else:
     from settings import (
         GPT_BASE,
@@ -207,7 +207,7 @@ class Description(ABC):
 
             answer = response.text
         elif USE_LM_STUDIO:
-            client = OpenAI(api_key=LM_STUDIO_API_KEY, base_url="http://localhost:1234/v1")
+            client = OpenAI(api_key=LM_STUDIO_API_KEY, base_url=LM_STUDIO_API_BASE)
             if stream:
                 # Collect chunks eagerly so the generator over the list is
                 # near-instantaneous — preventing Streamlit re-runs from
