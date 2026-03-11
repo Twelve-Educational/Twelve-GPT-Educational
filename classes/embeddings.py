@@ -6,6 +6,8 @@ from settings import (
     USE_GEMINI,
     GEMINI_EMBEDDING_MODEL,
     GEMINI_API_KEY,
+    USE_OPENAI,
+    OPENAI_EMBEDDINGS_MODEL,
 )
 
 
@@ -23,9 +25,11 @@ class Embeddings:
 
             genai.configure(api_key=GEMINI_API_KEY)
             ENGINE = GEMINI_EMBEDDING_MODEL
+        elif USE_OPENAI:
+            ENGINE = OPENAI_EMBEDDINGS_MODEL
         else:
             ENGINE = GPT_EMBEDDINGS_MODEL
-        embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI)
+        embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI, use_openai=USE_OPENAI)
 
         # An option for the future is to take the top from each dataframe, so we get a mixture of responses.
         df = self.df_dict
@@ -40,9 +44,14 @@ class Embeddings:
     def compare_strings(self, string1, string2):
         # Use this function to compare two strings or words embeddings
         # Returns co-sine similarilty between the two strings
-        ENGINE = GEMINI_EMBEDDING_MODEL if USE_GEMINI else GPT_EMBEDDINGS_MODEL
-        embedding1 = get_embedding(string1, engine=ENGINE, use_gemini=USE_GEMINI)
-        embedding2 = get_embedding(string2, engine=ENGINE, use_gemini=USE_GEMINI)
+        if USE_GEMINI:
+            ENGINE = GEMINI_EMBEDDING_MODEL
+        elif USE_OPENAI:
+            ENGINE = OPENAI_EMBEDDINGS_MODEL
+        else:
+            ENGINE = GPT_EMBEDDINGS_MODEL
+        embedding1 = get_embedding(string1, engine=ENGINE, use_gemini=USE_GEMINI, use_openai=USE_OPENAI)
+        embedding2 = get_embedding(string2, engine=ENGINE, use_gemini=USE_GEMINI, use_openai=USE_OPENAI)
 
         return cosine_similarity(embedding1, embedding2)
 
@@ -52,9 +61,11 @@ class Embeddings:
 
             genai.configure(api_key=GEMINI_API_KEY)
             ENGINE = GEMINI_EMBEDDING_MODEL
+        elif USE_OPENAI:
+            ENGINE = OPENAI_EMBEDDINGS_MODEL
         else:
             ENGINE = GPT_EMBEDDINGS_MODEL
-        embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI)
+        embedding = get_embedding(query, engine=ENGINE, use_gemini=USE_GEMINI, use_openai=USE_OPENAI)
 
         return embedding
 

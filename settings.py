@@ -30,6 +30,12 @@ GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 GEMINI_CHAT_MODEL = st.secrets.get("GEMINI_CHAT_MODEL", "")
 GEMINI_EMBEDDING_MODEL = st.secrets.get("GEMINI_EMBEDDING_MODEL", "")
 
+# OpenAI platform secrets
+USE_OPENAI = st.secrets.get("USE_OPENAI", False)
+OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", "")
+OPENAI_CHAT_MODEL = st.secrets.get("OPENAI_CHAT_MODEL", "")
+OPENAI_EMBEDDINGS_MODEL = st.secrets.get("OPENAI_EMBEDDINGS_MODEL", "")
+
 #Local LM Studio secrets
 USE_LM_STUDIO = st.secrets.get("USE_LM_STUDIO", False)
 LM_STUDIO_API_KEY = st.secrets.get("LM_STUDIO_API_KEY", "")
