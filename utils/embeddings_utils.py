@@ -10,13 +10,13 @@ from sklearn.metrics import average_precision_score, precision_recall_curve
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from openai import OpenAI, AsyncOpenAI
-from settings import GPT_BASE, GPT_KEY
+from settings import GPT_BASE, GPT_KEY, USE_OPENAI, OPENAI_API_KEY
 from utils.datalib.numpy_helper import numpy as np
 from utils.datalib.pandas_helper import pandas as pd
 
 
 @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
-def get_embedding(text: str, engine="text-similarity-davinci-001", use_gemini=False, **kwargs) -> List[float]:
+def get_embedding(text: str, engine="text-similarity-davinci-001", use_gemini=False, use_openai=False, **kwargs) -> List[float]:
 
     # replace newlines, which can negatively affect performance.
     text = text.replace("\n", " ")
@@ -29,6 +29,9 @@ def get_embedding(text: str, engine="text-similarity-davinci-001", use_gemini=Fa
             content=text,
             task_type="retrieval_document"
         )["embedding"]
+    elif use_openai:
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        embedding = client.embeddings.create(input=[text], model=engine, **kwargs).data[0].embedding
     else:
         client = OpenAI(api_key=GPT_KEY, base_url=GPT_BASE)
         embedding = client.embeddings.create(input=[text], model=engine, **kwargs).data[0].embedding
@@ -37,7 +40,7 @@ def get_embedding(text: str, engine="text-similarity-davinci-001", use_gemini=Fa
 
 @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
 async def aget_embedding(
-    text: str, engine="text-similarity-davinci-001", use_gemini=False, **kwargs
+    text: str, engine="text-similarity-davinci-001", use_gemini=False, use_openai=False, **kwargs
 ) -> List[float]:
 
     # replace newlines, which can negatively affect performance.
@@ -46,6 +49,10 @@ async def aget_embedding(
     if use_gemini:
         import google.generativeai as genai
         return (await genai.embed_content_async(model=engine, content=text, task_type="retrieval_document"))["embedding"]
+    elif use_openai:
+        client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        response = await client.embeddings.create(input=[text], model=engine, **kwargs)
+        return response.data[0].embedding
     else:
         client = AsyncOpenAI(api_key=GPT_KEY, base_url=GPT_BASE)
         response = await client.embeddings.create(input=[text], model=engine, **kwargs)
@@ -54,7 +61,7 @@ async def aget_embedding(
 
 @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
 def get_embeddings(
-    list_of_text: List[str], engine="text-similarity-babbage-001", use_gemini=False, **kwargs
+    list_of_text: List[str], engine="text-similarity-babbage-001", use_gemini=False, use_openai=False, **kwargs
 ) -> List[List[float]]:
     assert len(list_of_text) <= 2048, "The batch size should not be larger than 2048."
 
@@ -69,6 +76,10 @@ def get_embeddings(
             content=list_of_text,
             task_type="retrieval_document"
         )
+    elif use_openai:
+        data = OpenAI(api_key=OPENAI_API_KEY).embeddings.create(
+            input=list_of_text, model=engine, **kwargs
+        ).data
     else:
         data = OpenAI(api_key=GPT_KEY, base_url=GPT_BASE).embeddings.create(
             input=list_of_text, model=engine, **kwargs
@@ -78,7 +89,7 @@ def get_embeddings(
 
 @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
 async def aget_embeddings(
-    list_of_text: List[str], engine="text-similarity-babbage-001", use_gemini=False, **kwargs
+    list_of_text: List[str], engine="text-similarity-babbage-001", use_gemini=False, use_openai=False, **kwargs
 ) -> List[List[float]]:
     assert len(list_of_text) <= 2048, "The batch size should not be larger than 2048."
 
@@ -87,6 +98,12 @@ async def aget_embeddings(
     if use_gemini:
         import google.generativeai as genai
         data = (await genai.embed_content_async(model=engine, content=list_of_text, task_type="retrieval_document"))
+    elif use_openai:
+        data = (
+            await AsyncOpenAI(api_key=OPENAI_API_KEY).embeddings.create(
+                input=list_of_text, model=engine, **kwargs
+            )
+        ).data
     else:
         data = (
             await AsyncOpenAI(api_key=GPT_KEY, base_url=GPT_BASE).embeddings.create(

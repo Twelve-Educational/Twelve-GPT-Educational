@@ -5,10 +5,12 @@ from types import GeneratorType
 import pandas as pd
 import json
 
-from settings import USE_GEMINI, USE_LM_STUDIO
+from settings import USE_GEMINI, USE_OPENAI, USE_LM_STUDIO
 
 if USE_GEMINI:
     from settings import GEMINI_API_KEY, GEMINI_CHAT_MODEL
+elif USE_OPENAI:
+    from settings import OPENAI_API_KEY, OPENAI_CHAT_MODEL
 elif USE_LM_STUDIO:
     from settings import LM_STUDIO_API_KEY, LM_STUDIO_CHAT_MODEL, LM_STUDIO_API_BASE
 else:
@@ -137,6 +139,31 @@ class Chat:
             response = chat.send_message(content=converted_msgs["content"])
 
             answer = response.text
+        elif USE_OPENAI:
+            client = OpenAI(api_key=OPENAI_API_KEY)
+            if stream:
+                chunks = [
+                    chunk.choices[0].delta.content
+                    for chunk in client.chat.completions.create(
+                        model=OPENAI_CHAT_MODEL,
+                        messages=messages,
+                        temperature=temperature,
+                        stream=True,
+                    )
+                    if chunk.choices and chunk.choices[0].delta.content
+                ]
+
+                def streamed_chunks():
+                    yield from chunks
+
+                answer = streamed_chunks()
+            else:
+                response = client.chat.completions.create(
+                    model=OPENAI_CHAT_MODEL,
+                    messages=messages,
+                    temperature=temperature,
+                )
+                answer = response.choices[0].message.content
         elif USE_LM_STUDIO:
             client = OpenAI(api_key=LM_STUDIO_API_KEY, base_url=LM_STUDIO_API_BASE)
             if stream:
